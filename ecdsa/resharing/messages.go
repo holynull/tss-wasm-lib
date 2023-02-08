@@ -10,7 +10,7 @@ import (
 	"crypto/elliptic"
 	"math/big"
 
-	"github.com/holynull/tss-wasm-lib-lib-lib/common"
+	"github.com/holynull/tss-wasm-lib/common"
 	"github.com/holynull/tss-wasm-lib/crypto"
 	cmt "github.com/holynull/tss-wasm-lib/crypto/commitments"
 	"github.com/holynull/tss-wasm-lib/crypto/dlnproof"
