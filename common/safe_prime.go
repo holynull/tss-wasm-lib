@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 const (
@@ -166,6 +167,7 @@ func GetRandomSafePrimesConcurrent(ctx context.Context, bitLen, numPrimes int, c
 		case <-ctx.Done():
 			return nil, ErrGeneratorCancelled
 		}
+		time.Sleep(FOR_SLEEP_INTERVAL_MS * time.Millisecond)
 	}
 }
 
@@ -323,6 +325,7 @@ func runGenPrimeRoutine(
 					p, q = new(big.Int), new(big.Int)
 				}
 			}
+			time.Sleep(FOR_SLEEP_INTERVAL_MS * time.Millisecond)
 		}
 	}()
 }
