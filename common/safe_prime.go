@@ -309,7 +309,7 @@ func runGenPrimeRoutine(
 						continue NextDelta
 					}
 
-					break
+					break NextDelta
 				}
 
 				// There is a tiny possibility that, by adding delta, we caused

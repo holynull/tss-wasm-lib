@@ -139,12 +139,13 @@ func (p *LocalParty) StoreMessage(msg tss.ParsedMessage) (bool, *tss.Error) {
 func (save LocalPartySaveData) OriginalIndex() (int, error) {
 	index := -1
 	ki := save.ShareID
+Loop:
 	for j, kj := range save.Ks {
 		if kj.Cmp(ki) != 0 {
 			continue
 		}
 		index = j
-		break
+		break Loop
 	}
 	if index < 0 {
 		return -1, errors.New("a party index could not be recovered from Ks")

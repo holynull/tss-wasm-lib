@@ -40,10 +40,11 @@ func GetRandomPositiveInt(lessThan *big.Int) *big.Int {
 		return nil
 	}
 	var try *big.Int
+Loop:
 	for {
 		try = MustGetRandomInt(lessThan.BitLen())
 		if try.Cmp(lessThan) < 0 && try.Cmp(zero) >= 0 {
-			break
+			break Loop
 		}
 	}
 	return try
@@ -57,10 +58,11 @@ func GetRandomPrimeInt(bits int) *big.Int {
 	if err != nil ||
 		try.Cmp(zero) == 0 {
 		// fallback to older method
+	Loop:
 		for {
 			try = MustGetRandomInt(bits)
 			if probablyPrime(try) {
-				break
+				break Loop
 			}
 		}
 	}
@@ -74,10 +76,11 @@ func GetRandomPositiveRelativelyPrimeInt(n *big.Int) *big.Int {
 		return nil
 	}
 	var try *big.Int
+Loop:
 	for {
 		try = MustGetRandomInt(n.BitLen())
 		if IsNumberInMultiplicativeGroup(n, try) {
-			break
+			break Loop
 		}
 	}
 	return try
@@ -92,8 +95,9 @@ func IsNumberInMultiplicativeGroup(n, v *big.Int) bool {
 		gcd.GCD(nil, nil, v, n).Cmp(one) == 0
 }
 
-//  Return a random generator of RQn with high probability.
-//  THIS METHOD ONLY WORKS IF N IS THE PRODUCT OF TWO SAFE PRIMES!
+//	Return a random generator of RQn with high probability.
+//	THIS METHOD ONLY WORKS IF N IS THE PRODUCT OF TWO SAFE PRIMES!
+//
 // https://github.com/didiercrunch/paillier/blob/d03e8850a8e4c53d04e8016a2ce8762af3278b71/utils.go#L39
 func GetRandomGeneratorOfTheQuadraticResidue(n *big.Int) *big.Int {
 	f := GetRandomPositiveRelativelyPrimeInt(n)

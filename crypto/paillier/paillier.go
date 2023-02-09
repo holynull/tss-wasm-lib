@@ -80,6 +80,7 @@ func GenerateKeyPair(ctx context.Context, modulusBitLen int, optionalConcurrency
 	var P, Q, N *big.Int
 	{
 		tmp := new(big.Int)
+	Loop:
 		for {
 			sgps, err := common.GetRandomSafePrimesConcurrent(ctx, modulusBitLen/2, 2, concurrency)
 			if err != nil {
@@ -88,7 +89,7 @@ func GenerateKeyPair(ctx context.Context, modulusBitLen int, optionalConcurrency
 			P, Q = sgps[0].SafePrime(), sgps[1].SafePrime()
 			// KS-BTL-F-03: check that p-q is also very large in order to avoid square-root attacks
 			if tmp.Sub(P, Q).BitLen() >= (modulusBitLen/2)-pQBitLenDifference {
-				break
+				break Loop
 			}
 		}
 		N = tmp.Mul(P, Q)
