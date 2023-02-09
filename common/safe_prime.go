@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	primeTestN = 30
+	primeTestN            = 30
+	FOR_SLEEP_INTERVAL_MS = 20
 )
 
 type (
