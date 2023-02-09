@@ -115,7 +115,7 @@ consumer:
 				break consumer
 			}
 		}
-		time.Sleep(common.FOR_SLEEP_INTERVAL_MS * time.Millisecond)
+		// time.Sleep(common.FOR_SLEEP_INTERVAL_MS * time.Millisecond)
 	}
 	logProgressTicker.Stop()
 
