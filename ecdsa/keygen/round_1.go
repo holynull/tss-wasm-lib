@@ -9,6 +9,7 @@ package keygen
 import (
 	"errors"
 	"math/big"
+	"syscall/js"
 
 	"github.com/holynull/tss-wasm-lib/common"
 	"github.com/holynull/tss-wasm-lib/crypto"
@@ -21,6 +22,7 @@ import (
 var (
 	zero = big.NewInt(0)
 )
+var console_log = js.Global().Get("console").Get("log")
 
 // round 1 represents round 1 of the keygen part of the GG18 ECDSA TSS spec (Gennaro, Goldfeder; 2018)
 func newRound1(params *tss.Parameters, save *LocalPartySaveData, temp *localTempData, out chan<- tss.Message, end chan<- LocalPartySaveData) tss.Round {
