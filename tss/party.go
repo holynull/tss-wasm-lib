@@ -157,6 +157,7 @@ func BaseUpdate(p Party, msg ParsedMessage, task string) (ok bool, err *Error) {
 	}
 	p.lock() // data is written to P state below
 	common.Logger.Debugf("party %s received message: %s", p.PartyID(), msg.String())
+	console_log.Invoke(fmt.Sprintf("party %s received message: %s", p.PartyID(), msg.String()))
 	if p.round() != nil {
 		console_log.Invoke(fmt.Sprintf("party %s round %d update: %s", p.PartyID(), p.round().RoundNumber(), msg.String()))
 		common.Logger.Debugf("party %s round %d update: %s", p.PartyID(), p.round().RoundNumber(), msg.String())
