@@ -8,7 +8,9 @@ package keygen
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	errors2 "github.com/pkg/errors"
@@ -21,6 +23,7 @@ import (
 )
 
 func (round *round3) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -175,8 +178,8 @@ func (round *round3) Start() *tss.Error {
 		return round.WrapError(errors2.Wrapf(err, "public key is not on the curve"))
 	}
 	round.save.ECDSAPub = ecdsaPubKey
-
-	// PRINT public key & private share
+	round.end <- *round.save
+	/*// PRINT public key & private share
 	common.Logger.Debugf("%s public key: %x", round.PartyID(), ecdsaPubKey)
 
 	// BROADCAST paillier proof for Pi
@@ -185,6 +188,8 @@ func (round *round3) Start() *tss.Error {
 	r3msg := NewKGRound3Message(round.PartyID(), proof)
 	round.temp.kgRound3Messages[PIdx] = r3msg
 	round.out <- r3msg
+	*/
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

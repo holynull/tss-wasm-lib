@@ -7,9 +7,9 @@
 package keygen
 
 import (
-	"encoding/hex"
 	"errors"
-	"sync"
+	"fmt"
+	"time"
 
 	"github.com/holynull/tss-wasm-lib/common"
 	"github.com/holynull/tss-wasm-lib/tss"
@@ -20,6 +20,7 @@ const (
 )
 
 func (round *round2) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -32,63 +33,65 @@ func (round *round2) Start() *tss.Error {
 		round.PartyID(),
 		round.Concurrency(),
 	)
-	dlnVerifier := NewDlnProofVerifier(round.Concurrency())
 
 	i := round.PartyID().Index
 
 	// 6. verify dln proofs, store r1 message pieces, ensure uniqueness of h1j, h2j
-	h1H2Map := make(map[string]struct{}, len(round.temp.kgRound1Messages)*2)
-	dlnProof1FailCulprits := make([]*tss.PartyID, len(round.temp.kgRound1Messages))
-	dlnProof2FailCulprits := make([]*tss.PartyID, len(round.temp.kgRound1Messages))
-	wg := new(sync.WaitGroup)
-	for j, msg := range round.temp.kgRound1Messages {
-		r1msg := msg.Content().(*KGRound1Message)
-		H1j, H2j, NTildej, paillierPKj :=
-			r1msg.UnmarshalH1(),
-			r1msg.UnmarshalH2(),
-			r1msg.UnmarshalNTilde(),
-			r1msg.UnmarshalPaillierPK()
-		if paillierPKj.N.BitLen() != paillierBitsLen {
-			return round.WrapError(errors.New("got paillier modulus with insufficient bits for this party"), msg.GetFrom())
-		}
-		if H1j.Cmp(H2j) == 0 {
-			return round.WrapError(errors.New("h1j and h2j were equal for this party"), msg.GetFrom())
-		}
-		if NTildej.BitLen() != paillierBitsLen {
-			return round.WrapError(errors.New("got NTildej with insufficient bits for this party"), msg.GetFrom())
-		}
-		h1JHex, h2JHex := hex.EncodeToString(H1j.Bytes()), hex.EncodeToString(H2j.Bytes())
-		if _, found := h1H2Map[h1JHex]; found {
-			return round.WrapError(errors.New("this h1j was already used by another party"), msg.GetFrom())
-		}
-		if _, found := h1H2Map[h2JHex]; found {
-			return round.WrapError(errors.New("this h2j was already used by another party"), msg.GetFrom())
-		}
-		h1H2Map[h1JHex], h1H2Map[h2JHex] = struct{}{}, struct{}{}
-
-		wg.Add(2)
-		_j := j
-		_msg := msg
-
-		dlnVerifier.VerifyDLNProof1(r1msg, H1j, H2j, NTildej, func(isValid bool) {
-			if !isValid {
-				dlnProof1FailCulprits[_j] = _msg.GetFrom()
+	/*
+		dlnVerifier := NewDlnProofVerifier(round.Concurrency())
+		h1H2Map := make(map[string]struct{}, len(round.temp.kgRound1Messages)*2)
+		dlnProof1FailCulprits := make([]*tss.PartyID, len(round.temp.kgRound1Messages))
+		dlnProof2FailCulprits := make([]*tss.PartyID, len(round.temp.kgRound1Messages))
+		wg := new(sync.WaitGroup)
+		for j, msg := range round.temp.kgRound1Messages {
+			r1msg := msg.Content().(*KGRound1Message)
+			H1j, H2j, NTildej, paillierPKj :=
+				r1msg.UnmarshalH1(),
+				r1msg.UnmarshalH2(),
+				r1msg.UnmarshalNTilde(),
+				r1msg.UnmarshalPaillierPK()
+			if paillierPKj.N.BitLen() != paillierBitsLen {
+				return round.WrapError(errors.New("got paillier modulus with insufficient bits for this party"), msg.GetFrom())
 			}
-			wg.Done()
-		})
-		dlnVerifier.VerifyDLNProof2(r1msg, H2j, H1j, NTildej, func(isValid bool) {
-			if !isValid {
-				dlnProof2FailCulprits[_j] = _msg.GetFrom()
+			if H1j.Cmp(H2j) == 0 {
+				return round.WrapError(errors.New("h1j and h2j were equal for this party"), msg.GetFrom())
 			}
-			wg.Done()
-		})
-	}
-	wg.Wait()
-	for _, culprit := range append(dlnProof1FailCulprits, dlnProof2FailCulprits...) {
-		if culprit != nil {
-			return round.WrapError(errors.New("dln proof verification failed"), culprit)
+			if NTildej.BitLen() != paillierBitsLen {
+				return round.WrapError(errors.New("got NTildej with insufficient bits for this party"), msg.GetFrom())
+			}
+			h1JHex, h2JHex := hex.EncodeToString(H1j.Bytes()), hex.EncodeToString(H2j.Bytes())
+			if _, found := h1H2Map[h1JHex]; found {
+				return round.WrapError(errors.New("this h1j was already used by another party"), msg.GetFrom())
+			}
+			if _, found := h1H2Map[h2JHex]; found {
+				return round.WrapError(errors.New("this h2j was already used by another party"), msg.GetFrom())
+			}
+			h1H2Map[h1JHex], h1H2Map[h2JHex] = struct{}{}, struct{}{}
+
+			wg.Add(2)
+			_j := j
+			_msg := msg
+
+			dlnVerifier.VerifyDLNProof1(r1msg, H1j, H2j, NTildej, func(isValid bool) {
+				if !isValid {
+					dlnProof1FailCulprits[_j] = _msg.GetFrom()
+				}
+				wg.Done()
+			})
+			dlnVerifier.VerifyDLNProof2(r1msg, H2j, H1j, NTildej, func(isValid bool) {
+				if !isValid {
+					dlnProof2FailCulprits[_j] = _msg.GetFrom()
+				}
+				wg.Done()
+			})
 		}
-	}
+		wg.Wait()
+		for _, culprit := range append(dlnProof1FailCulprits, dlnProof2FailCulprits...) {
+			if culprit != nil {
+				return round.WrapError(errors.New("dln proof verification failed"), culprit)
+			}
+		}*/
+
 	// save NTilde_j, h1_j, h2_j, ...
 	for j, msg := range round.temp.kgRound1Messages {
 		if j == i {
@@ -123,7 +126,7 @@ func (round *round2) Start() *tss.Error {
 	r2msg2 := NewKGRound2Message2(round.PartyID(), round.temp.deCommitPolyG)
 	round.temp.kgRound2Message2s[i] = r2msg2
 	round.out <- r2msg2
-
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

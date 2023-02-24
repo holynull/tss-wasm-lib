@@ -8,13 +8,14 @@ package keygen
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"syscall/js"
+	"time"
 
 	"github.com/holynull/tss-wasm-lib/common"
 	"github.com/holynull/tss-wasm-lib/crypto"
 	cmts "github.com/holynull/tss-wasm-lib/crypto/commitments"
-	"github.com/holynull/tss-wasm-lib/crypto/dlnproof"
 	"github.com/holynull/tss-wasm-lib/crypto/vss"
 	"github.com/holynull/tss-wasm-lib/tss"
 )
@@ -31,6 +32,7 @@ func newRound1(params *tss.Parameters, save *LocalPartySaveData, temp *localTemp
 }
 
 func (round *round1) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -86,16 +88,16 @@ func (round *round1) Start() *tss.Error {
 	round.save.H1j[i], round.save.H2j[i] = preParams.H1i, preParams.H2i
 
 	// generate the dlnproofs for keygen
-	h1i, h2i, alpha, beta, p, q, NTildei :=
-		preParams.H1i,
-		preParams.H2i,
-		preParams.Alpha,
-		preParams.Beta,
-		preParams.P,
-		preParams.Q,
-		preParams.NTildei
-	dlnProof1 := dlnproof.NewDLNProof(h1i, h2i, alpha, p, q, NTildei)
-	dlnProof2 := dlnproof.NewDLNProof(h2i, h1i, beta, p, q, NTildei)
+	// h1i, h2i, alpha, beta, p, q, NTildei :=
+	// 	preParams.H1i,
+	// 	preParams.H2i,
+	// 	preParams.Alpha,
+	// 	preParams.Beta,
+	// 	preParams.P,
+	// 	preParams.Q,
+	// 	preParams.NTildei
+	// dlnProof1 := dlnproof.NewDLNProof(h1i, h2i, alpha, p, q, NTildei)
+	// dlnProof2 := dlnproof.NewDLNProof(h2i, h1i, beta, p, q, NTildei)
 
 	// for this P: SAVE
 	// - shareID
@@ -114,13 +116,14 @@ func (round *round1) Start() *tss.Error {
 	// BROADCAST commitments, paillier pk + proof; round 1 message
 	{
 		msg, err := NewKGRound1Message(
-			round.PartyID(), cmt.C, &preParams.PaillierSK.PublicKey, preParams.NTildei, preParams.H1i, preParams.H2i, dlnProof1, dlnProof2)
+			round.PartyID(), cmt.C, &preParams.PaillierSK.PublicKey, preParams.NTildei, preParams.H1i, preParams.H2i, preParams.DlnProof1, preParams.DlnProof2)
 		if err != nil {
 			return round.WrapError(err, Pi)
 		}
 		round.temp.kgRound1Messages[i] = msg
 		round.out <- msg
 	}
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

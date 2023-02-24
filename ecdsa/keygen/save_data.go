@@ -12,13 +12,15 @@ import (
 	"math/big"
 
 	"github.com/holynull/tss-wasm-lib/crypto"
+	"github.com/holynull/tss-wasm-lib/crypto/dlnproof"
 	"github.com/holynull/tss-wasm-lib/crypto/paillier"
 	"github.com/holynull/tss-wasm-lib/tss"
 )
 
 type (
 	LocalPreParams struct {
-		PaillierSK *paillier.PrivateKey // ski
+		DlnProof1, DlnProof2 *dlnproof.Proof
+		PaillierSK           *paillier.PrivateKey // ski
 		NTildei,
 		H1i, H2i,
 		Alpha, Beta,
