@@ -8,11 +8,14 @@ package signing
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/holynull/tss-wasm-lib/tss"
 )
 
 func (round *round8) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -23,7 +26,7 @@ func (round *round8) Start() *tss.Error {
 	r8msg := NewSignRound8Message(round.PartyID(), round.temp.DTelda)
 	round.temp.signRound8Messages[round.PartyID().Index] = r8msg
 	round.out <- r8msg
-
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"syscall/js"
+	"time"
 
 	"github.com/holynull/tss-wasm-lib/common"
 	"github.com/holynull/tss-wasm-lib/crypto"
@@ -23,6 +25,8 @@ var (
 	zero = big.NewInt(0)
 )
 
+var console_log = js.Global().Get("console").Get("log")
+
 // round 1 represents round 1 of the signing part of the GG18 ECDSA TSS spec (Gennaro, Goldfeder; 2018)
 func newRound1(params *tss.Parameters, key *keygen.LocalPartySaveData, data *common.SignatureData, temp *localTempData, out chan<- tss.Message, end chan<- common.SignatureData) tss.Round {
 	return &round1{
@@ -30,6 +34,7 @@ func newRound1(params *tss.Parameters, key *keygen.LocalPartySaveData, data *com
 }
 
 func (round *round1) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -75,7 +80,7 @@ func (round *round1) Start() *tss.Error {
 	r1msg2 := NewSignRound1Message2(round.PartyID(), cmt.C)
 	round.temp.signRound1Message2s[i] = r1msg2
 	round.out <- r1msg2
-
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

@@ -7,10 +7,10 @@
 package resharing
 
 import (
-	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
-	"sync"
+	"time"
 
 	errors2 "github.com/pkg/errors"
 
@@ -18,11 +18,11 @@ import (
 	"github.com/holynull/tss-wasm-lib/crypto"
 	"github.com/holynull/tss-wasm-lib/crypto/commitments"
 	"github.com/holynull/tss-wasm-lib/crypto/vss"
-	"github.com/holynull/tss-wasm-lib/ecdsa/keygen"
 	"github.com/holynull/tss-wasm-lib/tss"
 )
 
 func (round *round4) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -42,14 +42,14 @@ func (round *round4) Start() *tss.Error {
 		round.PartyID(),
 		round.Concurrency(),
 	)
-	dlnVerifier := keygen.NewDlnProofVerifier(round.Concurrency())
 
 	Pi := round.PartyID()
 	i := Pi.Index
 
-	// 1-3. verify paillier & dln proofs, store message pieces, ensure uniqueness of h1j, h2j
-	h1H2Map := make(map[string]struct{}, len(round.temp.dgRound2Message1s)*2)
 	paiProofCulprits := make([]*tss.PartyID, len(round.temp.dgRound2Message1s)) // who caused the error(s)
+	// 1-3. verify paillier & dln proofs, store message pieces, ensure uniqueness of h1j, h2j
+	/*dlnVerifier := keygen.NewDlnProofVerifier(round.Concurrency())
+	h1H2Map := make(map[string]struct{}, len(round.temp.dgRound2Message1s)*2)
 	dlnProof1FailCulprits := make([]*tss.PartyID, len(round.temp.dgRound2Message1s))
 	dlnProof2FailCulprits := make([]*tss.PartyID, len(round.temp.dgRound2Message1s))
 	wg := new(sync.WaitGroup)
@@ -101,7 +101,8 @@ func (round *round4) Start() *tss.Error {
 		if culprit != nil {
 			return round.WrapError(errors.New("dln proof verification failed"), culprit)
 		}
-	}
+	}*/
+
 	// save NTilde_j, h1_j, h2_j received in NewCommitteeStep1 here
 	for j, msg := range round.temp.dgRound2Message1s {
 		if j == i {
@@ -204,7 +205,7 @@ func (round *round4) Start() *tss.Error {
 	r4msg := NewDGRound4Message(round.OldAndNewParties(), Pi)
 	round.temp.dgRound4Messages[i] = r4msg
 	round.out <- r4msg
-
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

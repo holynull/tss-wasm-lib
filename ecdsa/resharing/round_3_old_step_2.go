@@ -8,11 +8,14 @@ package resharing
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/holynull/tss-wasm-lib/tss"
 )
 
 func (round *round3) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -43,7 +46,7 @@ func (round *round3) Start() *tss.Error {
 		vDeCmt)
 	round.temp.dgRound3Message2s[i] = r3msg2
 	round.out <- r3msg2
-
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

@@ -8,6 +8,8 @@ package signing
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	errors2 "github.com/pkg/errors"
 
@@ -18,6 +20,7 @@ import (
 )
 
 func (round *round5) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -91,7 +94,7 @@ func (round *round5) Start() *tss.Error {
 	round.temp.rx = rx
 	round.temp.ry = ry
 	round.temp.bigR = R
-
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 

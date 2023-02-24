@@ -8,8 +8,10 @@ package signing
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	errorspkg "github.com/pkg/errors"
 
@@ -19,6 +21,7 @@ import (
 )
 
 func (round *round3) Start() *tss.Error {
+	sta := time.Now()
 	if round.started {
 		return round.WrapError(errors.New("round already started"))
 	}
@@ -117,7 +120,7 @@ func (round *round3) Start() *tss.Error {
 	r3msg := NewSignRound3Message(round.PartyID(), thelta)
 	round.temp.signRound3Messages[round.PartyID().Index] = r3msg
 	round.out <- r3msg
-
+	console_log.Invoke(fmt.Sprintf("Time elasped: %fs", time.Since(sta).Seconds()))
 	return nil
 }
 
