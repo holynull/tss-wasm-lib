@@ -78,6 +78,7 @@ func (round *round1) Start() *tss.Error {
 	} else if round.save.LocalPreParams.ValidateWithProof() {
 		preParams = &round.save.LocalPreParams
 	} else {
+		console_log.Invoke("Warning: Generate Prepare Parameters.")
 		preParams, err = GeneratePreParams(round.SafePrimeGenTimeout(), round.Concurrency())
 		if err != nil {
 			return round.WrapError(errors.New("pre-params generation failed"), Pi)

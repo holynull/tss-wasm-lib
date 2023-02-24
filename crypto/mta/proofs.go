@@ -11,11 +11,15 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/holynull/tss-wasm-lib/common"
 	"github.com/holynull/tss-wasm-lib/crypto"
 	"github.com/holynull/tss-wasm-lib/crypto/paillier"
 )
+
+//MtA转换协议， 用到了paillier同态加密
+//假设 Alice 有个秘密值  ，而 Bob 有个秘密值  ，下面介绍一个协议可以在 Alice 不泄露  ，Bob 不泄露  的情况下，Alice 和 Bob 分别得到另外一个秘密值  ，满足：
 
 const (
 	ProofBobBytesParts   = 10
@@ -50,48 +54,104 @@ func ProveBobWC(ec elliptic.Curve, pk *paillier.PublicKey, NTilde, h1, h2, c1, c
 
 	// steps are numbered as shown in Fig. 10, but diverge slightly for Fig. 11
 	// 1.
-	alpha := common.GetRandomPositiveInt(q3)
+	// alpha := common.GetRandomPositiveInt(q3)
 
 	// 2.
-	rho := common.GetRandomPositiveInt(qNTilde)
-	sigma := common.GetRandomPositiveInt(qNTilde)
-	tau := common.GetRandomPositiveInt(qNTilde)
+	// rho := common.GetRandomPositiveInt(qNTilde)
+	// sigma := common.GetRandomPositiveInt(qNTilde)
+	// tau := common.GetRandomPositiveInt(qNTilde)
 
 	// 3.
-	rhoPrm := common.GetRandomPositiveInt(q3NTilde)
+	// rhoPrm := common.GetRandomPositiveInt(q3NTilde)
 
 	// 4.
-	beta := common.GetRandomPositiveRelativelyPrimeInt(pk.N)
-	gamma := common.GetRandomPositiveRelativelyPrimeInt(pk.N)
-
+	// beta := common.GetRandomPositiveRelativelyPrimeInt(pk.N)
+	// gamma := common.GetRandomPositiveRelativelyPrimeInt(pk.N)
+	var alpha *big.Int
+	var rho *big.Int
+	var sigma *big.Int
+	var tau *big.Int
+	var rhoPrm *big.Int
+	var beta *big.Int
+	var gamma *big.Int
+	wg := sync.WaitGroup{}
+	wg.Add(7)
+	go func() {
+		defer wg.Done()
+		alpha = common.GetRandomPositiveInt(q3)
+	}()
+	go func() {
+		defer wg.Done()
+		rho = common.GetRandomPositiveInt(qNTilde)
+	}()
+	go func() {
+		defer wg.Done()
+		sigma = common.GetRandomPositiveInt(qNTilde)
+	}()
+	go func() {
+		defer wg.Done()
+		tau = common.GetRandomPositiveInt(qNTilde)
+	}()
+	go func() {
+		defer wg.Done()
+		rhoPrm = common.GetRandomPositiveInt(q3NTilde)
+	}()
+	go func() {
+		defer wg.Done()
+		beta = common.GetRandomPositiveRelativelyPrimeInt(pk.N)
+	}()
+	go func() {
+		defer wg.Done()
+		gamma = common.GetRandomPositiveRelativelyPrimeInt(pk.N)
+	}()
+	wg.Wait()
 	// 5.
 	u := crypto.NewECPointNoCurveCheck(ec, zero, zero) // initialization suppresses an IDE warning
 	if X != nil {
 		u = crypto.ScalarBaseMult(ec, alpha)
 	}
 
-	// 6.
 	modNTilde := common.ModInt(NTilde)
-	z := modNTilde.Exp(h1, x)
-	z = modNTilde.Mul(z, modNTilde.Exp(h2, rho))
-
-	// 7.
-	zPrm := modNTilde.Exp(h1, alpha)
-	zPrm = modNTilde.Mul(zPrm, modNTilde.Exp(h2, rhoPrm))
-
-	// 8.
-	t := modNTilde.Exp(h1, y)
-	t = modNTilde.Mul(t, modNTilde.Exp(h2, sigma))
-
-	// 9.
-	modNSquared := common.ModInt(NSquared)
-	v := modNSquared.Exp(c1, alpha)
-	v = modNSquared.Mul(v, modNSquared.Exp(pk.Gamma(), gamma))
-	v = modNSquared.Mul(v, modNSquared.Exp(beta, pk.N))
-
-	// 10.
-	w := modNTilde.Exp(h1, gamma)
-	w = modNTilde.Mul(w, modNTilde.Exp(h2, tau))
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(5)
+	var z *big.Int
+	go func() {
+		// 6.
+		defer waitGroup.Done()
+		z = modNTilde.Exp(h1, x)
+		z = modNTilde.Mul(z, modNTilde.Exp(h2, rho))
+	}()
+	var zPrm *big.Int
+	go func() {
+		defer waitGroup.Done()
+		// 7.
+		zPrm = modNTilde.Exp(h1, alpha)
+		zPrm = modNTilde.Mul(zPrm, modNTilde.Exp(h2, rhoPrm))
+	}()
+	var t *big.Int
+	go func() {
+		defer waitGroup.Done()
+		// 8.
+		t = modNTilde.Exp(h1, y)
+		t = modNTilde.Mul(t, modNTilde.Exp(h2, sigma))
+	}()
+	var v *big.Int
+	go func() {
+		defer waitGroup.Done()
+		// 9.
+		modNSquared := common.ModInt(NSquared)
+		v = modNSquared.Exp(c1, alpha)
+		v = modNSquared.Mul(v, modNSquared.Exp(pk.Gamma(), gamma))
+		v = modNSquared.Mul(v, modNSquared.Exp(beta, pk.N))
+	}()
+	var w *big.Int
+	go func() {
+		defer waitGroup.Done()
+		// 10.
+		w = modNTilde.Exp(h1, gamma)
+		w = modNTilde.Mul(w, modNTilde.Exp(h2, tau))
+	}()
+	waitGroup.Wait()
 
 	// 11-12. e'
 	var e *big.Int
@@ -105,7 +165,6 @@ func ProveBobWC(ec elliptic.Curve, pk *paillier.PublicKey, NTilde, h1, h2, c1, c
 		}
 		e = common.RejectionSample(q, eHash)
 	}
-
 	// 13.
 	modN := common.ModInt(pk.N)
 	s := modN.Exp(r, e)
@@ -129,7 +188,6 @@ func ProveBobWC(ec elliptic.Curve, pk *paillier.PublicKey, NTilde, h1, h2, c1, c
 
 	// the regular Bob proof ("without check") is extracted and returned by ProveBob
 	pf := &ProofBob{Z: z, ZPrm: zPrm, T: t, V: v, W: w, S: s, S1: s1, S2: s2, T1: t1, T2: t2}
-
 	// or the WC ("with check") version is used in round 2 of the signing protocol
 	return &ProofBobWC{ProofBob: pf, U: u}, nil
 }
